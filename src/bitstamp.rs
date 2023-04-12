@@ -23,7 +23,7 @@ impl Bitstamp {
                 let response_event: BitstampResponseEvent = serde_json::from_str(&text).unwrap();
                 if let BitstampWebSocketEvent::Data = response_event.event {
                     let response: BitstampResponse = serde_json::from_str(&text).unwrap();
-                    println!("response: {:#?}", response.data.bids.len());
+                    println!("bitstamp response: {:#?}", response.data.bids.len());
                 }
             }
         })
