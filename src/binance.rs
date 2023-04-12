@@ -1,11 +1,18 @@
+use crate::exchange::Exchange;
+use crate::order_book::{deserialize_bid_ask, BidAsk};
 use anyhow::Result;
 use futures_util::StreamExt;
 use serde::Deserialize;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
-
 const BINANCE_WEB_SOCKET_URL: &str = "wss://stream.binance.com:9443/ws/";
 
 pub struct Binance {}
+
+impl Exchange for Binance {
+    fn get_name() -> String {
+        "binance".to_string()
+    }
+}
 
 impl Binance {
     pub async fn get_order_book() -> Result<()> {
@@ -16,7 +23,7 @@ impl Binance {
         read.for_each(|message| async {
             if let Ok(Message::Text(text)) = message {
                 let response: BinanceResponseData = serde_json::from_str(&text).unwrap();
-                println!("binance response: {:#?}", response.bids.len());
+                println!("binance response: {:#?}", response.bids[0]);
             }
         })
         .await;
@@ -47,12 +54,11 @@ impl BinanceSubscription {
     }
 }
 
-// Response types
-type BinanceBidAskType = Vec<[String; 2]>;
-
 #[derive(Deserialize, Debug)]
 struct BinanceResponseData {
     lastUpdateId: i64,
-    bids: BinanceBidAskType,
-    asks: BinanceBidAskType,
+    #[serde(deserialize_with = "deserialize_bid_ask::<'_, _, Binance>")]
+    bids: Vec<BidAsk>,
+    #[serde(deserialize_with = "deserialize_bid_ask::<'_, _, Binance>")]
+    asks: Vec<BidAsk>,
 }

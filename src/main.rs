@@ -1,5 +1,7 @@
 mod binance;
 mod bitstamp;
+mod exchange;
+mod order_book;
 use crate::binance::Binance;
 use crate::bitstamp::Bitstamp;
 use anyhow::Result;
