@@ -41,12 +41,14 @@ pub fn deserialize_bid_ask<'de, D: Deserializer<'de>, X: Exchange>(
             .iter()
             .filter_map(|price_amount_vector_value| {
                 if let Value::Array(price_amount_vector) = price_amount_vector_value {
-                    let bid_ask = BidAsk::new(
-                        X::get_name(),
-                        value_to_float!(&price_amount_vector[0], D).unwrap(),
-                        value_to_float!(&price_amount_vector[1], D).unwrap(),
-                    );
-                    Some(bid_ask)
+                    let maybe_price = value_to_float!(&price_amount_vector[0], D);
+                    let maybe_amount = value_to_float!(&price_amount_vector[1], D);
+                    if let (Ok(price), Ok(amount)) = (maybe_price, maybe_amount) {
+                        let bid_ask = BidAsk::new(X::get_name(), price, amount);
+                        Some(bid_ask)
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
