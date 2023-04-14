@@ -1,60 +1,64 @@
 use crate::exchange::Exchange;
-use serde::{de::Error, Deserialize, Deserializer};
-use serde_json::Value;
+use serde::{
+    de::{Error, SeqAccess},
+    Deserialize, Deserializer,
+};
+use std::{fmt, marker::PhantomData};
 
-macro_rules! value_to_float {
-    ( $value:expr, $deserializer:ident ) => {{
-        match $value {
-            Value::String(string) => string.parse().map_err(Error::custom),
-            Value::Number(number) => number.as_f64().ok_or(Error::custom("not a float")),
-            // It was necessary to add the deserializer error type here
-            _ => Err::<f64, $deserializer::Error>(Error::custom("wrong type")),
-        }
-    }};
-}
+use serde::de::{self, Visitor};
 
 // https://play.rust-lang.org/?version=stable&mode=debug&edition=2018&gist=ee7f582b5873013723596790a7993925
 // https://serde.rs/string-or-struct.html
-#[derive(Debug, Deserialize)]
-pub struct BidAsk {
-    exchange: String,
+#[derive(Debug)]
+pub struct Level<X: Exchange> {
+    exchange: &'static str,
     price: f64,
     amount: f64,
+    phantom: PhantomData<X>,
 }
 
-impl BidAsk {
-    pub fn new(exchange: String, price: f64, amount: f64) -> Self {
+impl<X: Exchange> Level<X> {
+    pub fn new(exchange: &'static str, price: f64, amount: f64) -> Self {
         Self {
             exchange,
             price,
             amount,
+            phantom: PhantomData,
         }
     }
 }
 
-// I considered doing a custom deserializer, but that might be overkill for this
-pub fn deserialize_bid_ask<'de, D: Deserializer<'de>, X: Exchange>(
-    deserializer: D,
-) -> Result<Vec<BidAsk>, D::Error> {
-    Ok(match Value::deserialize(deserializer)? {
-        Value::Array(bid_asks_vector) => bid_asks_vector
-            .iter()
-            .filter_map(|price_amount_vector_value| {
-                if let Value::Array(price_amount_vector) = price_amount_vector_value {
-                    let maybe_price = value_to_float!(&price_amount_vector[0], D);
-                    let maybe_amount = value_to_float!(&price_amount_vector[1], D);
-                    if let (Ok(price), Ok(amount)) = (maybe_price, maybe_amount) {
-                        let bid_ask = BidAsk::new(X::get_name(), price, amount);
-                        Some(bid_ask)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            })
-            .collect(),
+struct LevelVisitor<X: Exchange>(PhantomData<fn() -> X>);
 
-        _ => return Err(Error::custom("wrong type")),
-    })
+impl<'de, X: Exchange> Visitor<'de> for LevelVisitor<X> {
+    type Value = Level<X>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("an integer between -2^31 and 2^31")
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let maybe_price = seq.next_element::<&str>()?;
+        let maybe_amount = seq.next_element::<&str>()?;
+
+        if let (Some(price), Some(amount)) = (maybe_price, maybe_amount) {
+            let price = price.parse::<f64>().map_err(Error::custom)?;
+            let amount = amount.parse::<f64>().map_err(Error::custom)?;
+            Ok(Level::new(X::get_name(), price, amount))
+        } else {
+            Err(de::Error::custom("Expected a array with two elements"))
+        }
+    }
+}
+
+impl<'de, X: Exchange> Deserialize<'de> for Level<X> {
+    fn deserialize<D>(deserializer: D) -> Result<Level<X>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_seq(LevelVisitor(PhantomData))
+    }
 }

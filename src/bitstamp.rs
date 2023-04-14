@@ -1,16 +1,17 @@
 use crate::exchange::Exchange;
-use crate::order_book::{deserialize_bid_ask, BidAsk};
+use crate::order_book::Level;
 use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 const BITSTAMP_WEB_SOCKET_URL: &str = "wss://ws.bitstamp.net/";
 
+#[derive(Debug)]
 pub struct Bitstamp {}
 
 impl Exchange for Bitstamp {
-    fn get_name() -> String {
-        "bitstamp".to_string()
+    fn get_name() -> &'static str {
+        "bitstamp"
     }
 }
 
@@ -70,10 +71,8 @@ impl BitstampSubscription {
 struct BitstampResponseData {
     timestamp: String,
     microtimestamp: String,
-    #[serde(deserialize_with = "deserialize_bid_ask::<'_, _, Bitstamp>")]
-    bids: Vec<BidAsk>,
-    #[serde(deserialize_with = "deserialize_bid_ask::<'_, _, Bitstamp>")]
-    asks: Vec<BidAsk>,
+    bids: Vec<Level<Bitstamp>>,
+    asks: Vec<Level<Bitstamp>>,
 }
 
 #[derive(Deserialize, Debug)]

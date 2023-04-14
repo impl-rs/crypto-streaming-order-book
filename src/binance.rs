@@ -1,16 +1,17 @@
 use crate::exchange::Exchange;
-use crate::order_book::{deserialize_bid_ask, BidAsk};
+use crate::order_book::Level;
 use anyhow::Result;
 use futures_util::StreamExt;
 use serde::Deserialize;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 const BINANCE_WEB_SOCKET_URL: &str = "wss://stream.binance.com:9443/ws/";
 
+#[derive(Debug)]
 pub struct Binance {}
 
 impl Exchange for Binance {
-    fn get_name() -> String {
-        "binance".to_string()
+    fn get_name() -> &'static str {
+        "binance"
     }
 }
 
@@ -57,8 +58,6 @@ impl BinanceSubscription {
 #[derive(Deserialize, Debug)]
 struct BinanceResponseData {
     lastUpdateId: i64,
-    #[serde(deserialize_with = "deserialize_bid_ask::<'_, _, Binance>")]
-    bids: Vec<BidAsk>,
-    #[serde(deserialize_with = "deserialize_bid_ask::<'_, _, Binance>")]
-    asks: Vec<BidAsk>,
+    bids: Vec<Level<Binance>>,
+    asks: Vec<Level<Binance>>,
 }

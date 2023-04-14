@@ -1,3 +1,3 @@
 pub trait Exchange {
-    fn get_name() -> String;
+    fn get_name() -> &'static str;
 }
