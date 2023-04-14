@@ -9,7 +9,11 @@ use tokio::join;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    join!(Bitstamp::get_order_book(), Binance::get_order_book());
+    let pair = "ethbtc";
+    join!(
+        Bitstamp::get_order_book(pair),
+        Binance::get_order_book(pair)
+    );
 
     Ok(())
 }

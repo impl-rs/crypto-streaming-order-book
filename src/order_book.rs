@@ -7,6 +7,12 @@ use std::{fmt, marker::PhantomData};
 
 use serde::de::{self, Visitor};
 
+#[derive(Deserialize, Debug)]
+pub struct OrderBook<X: Exchange> {
+    pub bids: Vec<Level<X>>,
+    pub asks: Vec<Level<X>>,
+}
+
 // https://play.rust-lang.org/?version=stable&mode=debug&edition=2018&gist=ee7f582b5873013723596790a7993925
 // https://serde.rs/string-or-struct.html
 #[derive(Debug)]

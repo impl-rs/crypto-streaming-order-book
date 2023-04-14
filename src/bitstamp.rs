@@ -1,12 +1,12 @@
 use crate::exchange::Exchange;
-use crate::order_book::Level;
+use crate::order_book::OrderBook;
 use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 const BITSTAMP_WEB_SOCKET_URL: &str = "wss://ws.bitstamp.net/";
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct Bitstamp {}
 
 impl Exchange for Bitstamp {
@@ -16,13 +16,14 @@ impl Exchange for Bitstamp {
 }
 
 impl Bitstamp {
-    pub async fn get_order_book() -> Result<()> {
+    pub async fn get_order_book(pair: &str) -> Result<()> {
         let (ws_stream, _) = connect_async(BITSTAMP_WEB_SOCKET_URL).await?;
         let (mut write, read) = ws_stream.split();
 
         write
             .send(Message::Text(
-                BitstampSubscription::new("bts:subscribe", "order_book_btcusd").to_json(),
+                BitstampSubscription::new("bts:subscribe", format!("order_book_{}", pair))
+                    .to_json(),
             ))
             .await?;
 
@@ -30,8 +31,9 @@ impl Bitstamp {
             if let Ok(Message::Text(text)) = message {
                 let response_event: BitstampResponseEvent = serde_json::from_str(&text).unwrap();
                 if let BitstampWebSocketEvent::Data = response_event.event {
-                    let response: BitstampResponse = serde_json::from_str(&text).unwrap();
-                    println!("bitstamp response: {:#?}", response.data.bids[0]);
+                    let bitstamp_response: BitstampResponse = serde_json::from_str(&text).unwrap();
+                    let order_book: OrderBook<Bitstamp> = bitstamp_response.into();
+                    println!("bitstamp response: {:#?}", order_book.bids[0]);
                 }
             }
         })
@@ -54,12 +56,10 @@ struct BitstampSubscription {
 }
 
 impl BitstampSubscription {
-    fn new(event: &str, channel: &str) -> Self {
+    fn new(event: &str, channel: String) -> Self {
         Self {
             event: event.to_string(),
-            data: BitstampSubscriptionData {
-                channel: channel.to_string(),
-            },
+            data: BitstampSubscriptionData { channel: channel },
         }
     }
     fn to_json(&self) -> String {
@@ -68,16 +68,14 @@ impl BitstampSubscription {
 }
 
 #[derive(Deserialize, Debug)]
-struct BitstampResponseData {
-    timestamp: String,
-    microtimestamp: String,
-    bids: Vec<Level<Bitstamp>>,
-    asks: Vec<Level<Bitstamp>>,
+struct BitstampResponse {
+    data: OrderBook<Bitstamp>,
 }
 
-#[derive(Deserialize, Debug)]
-struct BitstampResponse {
-    data: BitstampResponseData,
+impl From<BitstampResponse> for OrderBook<Bitstamp> {
+    fn from(bitstamp_response: BitstampResponse) -> Self {
+        bitstamp_response.data
+    }
 }
 
 #[derive(Deserialize, Debug)]
