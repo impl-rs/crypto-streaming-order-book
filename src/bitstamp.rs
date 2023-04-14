@@ -1,9 +1,11 @@
 use crate::exchange::Exchange;
-use crate::order_book::OrderBook;
+use crate::order_book::{OrderBook, OrderBookBuilder};
 use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use tokio::sync::mpsc::UnboundedSender;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
+
 const BITSTAMP_WEB_SOCKET_URL: &str = "wss://ws.bitstamp.net/";
 
 #[derive(Debug, Deserialize)]
@@ -16,7 +18,7 @@ impl Exchange for Bitstamp {
 }
 
 impl Bitstamp {
-    pub async fn get_order_book(pair: &str) -> Result<()> {
+    pub async fn get_order_book(pair: &str, sender: UnboundedSender<OrderBook>) -> Result<()> {
         let (ws_stream, _) = connect_async(BITSTAMP_WEB_SOCKET_URL).await?;
         let (mut write, read) = ws_stream.split();
 
@@ -32,8 +34,9 @@ impl Bitstamp {
                 let response_event: BitstampResponseEvent = serde_json::from_str(&text).unwrap();
                 if let BitstampWebSocketEvent::Data = response_event.event {
                     let bitstamp_response: BitstampResponse = serde_json::from_str(&text).unwrap();
-                    let order_book: OrderBook<Bitstamp> = bitstamp_response.into();
-                    println!("bitstamp response: {:#?}", order_book.bids[0]);
+                    let order_book: OrderBookBuilder<Bitstamp> = bitstamp_response.into();
+                    let sent = sender.send(order_book.build()).unwrap();
+                    dbg!(sent);
                 }
             }
         })
@@ -69,10 +72,10 @@ impl BitstampSubscription {
 
 #[derive(Deserialize, Debug)]
 struct BitstampResponse {
-    data: OrderBook<Bitstamp>,
+    data: OrderBookBuilder<Bitstamp>,
 }
 
-impl From<BitstampResponse> for OrderBook<Bitstamp> {
+impl From<BitstampResponse> for OrderBookBuilder<Bitstamp> {
     fn from(bitstamp_response: BitstampResponse) -> Self {
         bitstamp_response.data
     }
