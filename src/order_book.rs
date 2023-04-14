@@ -34,7 +34,7 @@ impl<'de, X: Exchange> Visitor<'de> for LevelVisitor<X> {
     type Value = Level<X>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("an integer between -2^31 and 2^31")
+        formatter.write_str("An order book level")
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
