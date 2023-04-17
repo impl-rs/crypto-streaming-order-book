@@ -1,6 +1,5 @@
 use crate::exchange::Exchange;
 use crate::order_book::{OrderBook, OrderBookBuilder};
-use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::UnboundedSender;
@@ -18,8 +17,8 @@ impl Exchange for Bitstamp {
 }
 
 impl Bitstamp {
-    pub async fn get_order_book(pair: &str, sender: UnboundedSender<OrderBook>) -> Result<()> {
-        let (ws_stream, _) = connect_async(BITSTAMP_WEB_SOCKET_URL).await?;
+    pub async fn get_order_book(pair: &str, sender: UnboundedSender<OrderBook>) -> () {
+        let (ws_stream, _) = connect_async(BITSTAMP_WEB_SOCKET_URL).await.unwrap();
         let (mut write, read) = ws_stream.split();
 
         write
@@ -27,7 +26,8 @@ impl Bitstamp {
                 BitstampSubscription::new("bts:subscribe", format!("order_book_{}", pair))
                     .to_json(),
             ))
-            .await?;
+            .await
+            .unwrap();
 
         read.for_each(|message| async {
             if let Ok(Message::Text(text)) = message {
@@ -41,8 +41,6 @@ impl Bitstamp {
             }
         })
         .await;
-
-        Ok(())
     }
 }
 

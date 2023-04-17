@@ -1,6 +1,5 @@
 use crate::exchange::Exchange;
 use crate::order_book::{OrderBook, OrderBookBuilder};
-use anyhow::Result;
 use futures_util::StreamExt;
 use serde::Deserialize;
 use tokio::sync::mpsc::UnboundedSender;
@@ -17,9 +16,9 @@ impl Exchange for Binance {
 }
 
 impl Binance {
-    pub async fn get_order_book(pair: &str, sender: UnboundedSender<OrderBook>) -> Result<()> {
+    pub async fn get_order_book(pair: &str, sender: UnboundedSender<OrderBook>) -> () {
         let subscription = BinanceSubscription::new(pair, 10, 100);
-        let (ws_stream, _) = connect_async(subscription.to_url()).await?;
+        let (ws_stream, _) = connect_async(subscription.to_url()).await.unwrap();
         let (_, read) = ws_stream.split();
 
         read.for_each(|message| async {
@@ -30,8 +29,6 @@ impl Binance {
             }
         })
         .await;
-
-        Ok(())
     }
 }
 
