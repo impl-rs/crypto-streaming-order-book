@@ -15,9 +15,15 @@ pub struct OrderBookBuilder<X: Exchange + std::fmt::Debug> {
 
 #[derive(Debug)]
 pub struct OrderBook {
-    spread: f64,
+    exchange: &'static str,
     bids: Vec<Level>,
     asks: Vec<Level>,
+}
+
+impl OrderBook {
+    pub fn get_exchange_name(&self) -> &'static str {
+        self.exchange
+    }
 }
 
 impl<X: Exchange + std::fmt::Debug> OrderBookBuilder<X> {
@@ -27,10 +33,8 @@ impl<X: Exchange + std::fmt::Debug> OrderBookBuilder<X> {
         bids.sort_by(|a, b| b.price.partial_cmp(&a.price).unwrap());
         asks.sort_by(|a, b| a.price.partial_cmp(&b.price).unwrap());
 
-        let spread = asks[0].price - bids[0].price;
-
         OrderBook {
-            spread,
+            exchange: X::get_name(),
             bids: bids.into_iter().take(10).map(|b| b.build()).collect(),
             asks: asks.into_iter().take(10).map(|a| a.build()).collect(),
         }
@@ -51,16 +55,14 @@ impl<X: Exchange> LevelBuilder<X> {
         Level {
             price: self.price,
             amount: self.amount,
-            exchange: X::get_name(),
         }
     }
 }
 
 #[derive(Debug)]
-struct Level {
+pub struct Level {
     price: f64,
     amount: f64,
-    exchange: &'static str,
 }
 
 impl<X: Exchange> LevelBuilder<X> {
@@ -129,7 +131,6 @@ mod tests {
         let level = level_builder.build();
         assert_eq!(level.price, 1.0);
         assert_eq!(level.amount, 2.0);
-        assert_eq!(level.exchange, "bitstamp");
     }
 
     #[test]
@@ -138,7 +139,7 @@ mod tests {
 
         let order_book = order_book_builder.build();
 
-        assert_eq!(order_book.spread, 7.389999999996011e-6);
+        assert_eq!(order_book.exchange, "bitstamp");
         assert_eq!(order_book.bids.len(), 10);
         assert_eq!(order_book.asks.len(), 10);
 
@@ -146,7 +147,7 @@ mod tests {
 
         let order_book = order_book_builder.build();
 
-        assert_eq!(order_book.spread, 1.000000000001e-6);
+        assert_eq!(order_book.exchange, "binance");
         assert_eq!(order_book.bids.len(), 10);
         assert_eq!(order_book.asks.len(), 10);
     }
