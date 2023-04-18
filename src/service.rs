@@ -1,13 +1,13 @@
-use std::collections::HashMap;
-
 use crate::binance::Binance;
 use crate::bitstamp::Bitstamp;
+use crate::exchange::Exchange;
 use crate::order_book::OrderBook;
 pub use orderbook::{
     orderbook_aggregator_client::OrderbookAggregatorClient,
     orderbook_aggregator_server::OrderbookAggregatorServer, Empty,
 };
 use orderbook::{orderbook_aggregator_server::OrderbookAggregator, Summary};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::{
     spawn,
@@ -23,7 +23,6 @@ pub mod orderbook {
 #[derive(Debug)]
 pub struct OrderBookService {
     pair: &'static str,
-    // TODO add state from order book before merging
     pub exchanges: Arc<Mutex<HashMap<&'static str, OrderBook>>>,
 }
 

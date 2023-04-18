@@ -8,16 +8,14 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 const BITSTAMP_WEB_SOCKET_URL: &str = "wss://ws.bitstamp.net/";
 
 #[derive(Debug, Deserialize)]
-pub struct Bitstamp {}
+pub struct Bitstamp;
 
+#[tonic::async_trait]
 impl Exchange for Bitstamp {
     fn get_name() -> &'static str {
         "bitstamp"
     }
-}
-
-impl Bitstamp {
-    pub async fn get_order_book(pair: &str, sender: UnboundedSender<OrderBook>) -> () {
+    async fn get_order_book(pair: &str, sender: UnboundedSender<OrderBook>) -> () {
         let (ws_stream, _) = connect_async(BITSTAMP_WEB_SOCKET_URL).await.unwrap();
         let (mut write, read) = ws_stream.split();
 
@@ -35,8 +33,7 @@ impl Bitstamp {
                 if let BitstampWebSocketEvent::Data = response_event.event {
                     let bitstamp_response: BitstampResponse = serde_json::from_str(&text).unwrap();
                     let order_book: OrderBookBuilder<Bitstamp> = bitstamp_response.into();
-                    let sent = sender.send(order_book.build()).unwrap();
-                    dbg!(sent);
+                    sender.send(order_book.build()).unwrap();
                 }
             }
         })
