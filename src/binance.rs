@@ -5,7 +5,11 @@ use serde::Deserialize;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
+#[cfg(not(test))]
 const BINANCE_WEB_SOCKET_URL: &str = "wss://stream.binance.com:9443/ws/";
+
+#[cfg(test)]
+const BINANCE_WEB_SOCKET_URL: &str = "ws://localhost:8080/ws/";
 
 #[derive(Debug, Deserialize)]
 pub struct Binance;

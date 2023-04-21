@@ -71,10 +71,11 @@ async fn merge_levels(
 ) -> (Vec<Level>, Vec<Level>) {
     let (mut bids, mut asks) = exchanges.lock().await.values().fold(
         (vec![], vec![]),
-        |(mut bids, mut asks), order_book| {
-            bids.append(&mut order_book.get_bids());
-            asks.append(&mut order_book.get_asks());
-            (bids, asks)
+        |(mut acc_bids, mut acc_asks), order_book| {
+            let (mut bids, mut asks) = order_book.get_levels();
+            acc_bids.append(&mut bids);
+            acc_asks.append(&mut asks);
+            (acc_bids, acc_asks)
         },
     );
 
