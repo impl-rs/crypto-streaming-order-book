@@ -131,8 +131,18 @@ mod tests {
 
         let summary = get_summary(&exchanges_mutex).await;
         assert_eq!(summary.spread, 1.000000000001e-6);
+
         assert_eq!(summary.bids.len(), 10);
         assert_eq!(summary.asks.len(), 10);
+
+        // highest price first for bids
+        assert_eq!(summary.bids[0].price, 0.068426);
+        assert_eq!(summary.bids[9].price, 0.06842);
+
+        // lowest price first for asks
+        assert_eq!(summary.asks[0].price, 0.068427);
+        assert_eq!(summary.asks[9].price, 0.068437);
+
         // test that bids with price 0.06842268 are sorted by amount
         assert!(summary.bids[3].amount > summary.bids[4].amount);
     }
