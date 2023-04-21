@@ -57,7 +57,7 @@ impl BitstampSubscription {
     fn new(event: &str, channel: String) -> Self {
         Self {
             event: event.to_string(),
-            data: BitstampSubscriptionData { channel: channel },
+            data: BitstampSubscriptionData { channel },
         }
     }
     fn to_json(&self) -> String {
