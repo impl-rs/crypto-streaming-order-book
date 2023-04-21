@@ -2,12 +2,9 @@ use crate::binance::Binance;
 use crate::bitstamp::Bitstamp;
 use crate::exchange::Exchange;
 use crate::order_book::OrderBook;
+
+use crate::proto::{Empty, Level, OrderbookAggregator, Summary};
 use core::cmp::Ordering;
-pub use orderbook::{
-    orderbook_aggregator_client::OrderbookAggregatorClient,
-    orderbook_aggregator_server::OrderbookAggregatorServer, Empty, Level,
-};
-use orderbook::{orderbook_aggregator_server::OrderbookAggregator, Summary};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::{
@@ -16,9 +13,6 @@ use tokio::{
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{Request, Response, Status};
-pub mod orderbook {
-    tonic::include_proto!("orderbook");
-}
 
 #[derive(Debug)]
 pub struct OrderBookService {

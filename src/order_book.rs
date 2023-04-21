@@ -1,5 +1,5 @@
 use crate::exchange::Exchange;
-use crate::service::Level;
+use crate::proto::Level;
 use serde::de::{self, Visitor};
 use serde::{
     de::{Error, SeqAccess},

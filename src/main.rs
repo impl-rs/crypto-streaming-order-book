@@ -2,9 +2,10 @@ mod binance;
 mod bitstamp;
 mod exchange;
 mod order_book;
+mod proto;
 mod service;
-
-use crate::service::{OrderBookService, OrderbookAggregatorServer};
+use crate::proto::OrderbookAggregatorServer;
+use crate::service::OrderBookService;
 use std::error::Error;
 use tonic::transport::Server;
 #[cfg(test)]

@@ -1,12 +1,5 @@
-mod binance;
-mod bitstamp;
-mod exchange;
-mod order_book;
-mod service;
-use crate::service::{Empty, OrderbookAggregatorClient};
-
-#[cfg(test)]
-mod test_data;
+mod proto;
+use crate::proto::{Empty, OrderbookAggregatorClient};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
