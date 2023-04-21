@@ -10,6 +10,9 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
+      - name: Install protoc
+        run: apt install protobuf-compiler
+
       - name: Install nightly toolchain with clippy available
         uses: actions-rs/toolchain@v1
         with:
@@ -52,6 +55,9 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+
+      - name: Install protoc
+        run: apt install protobuf-compiler
 
       - name: Install nightly toolchain
         uses: actions-rs/toolchain@v1
