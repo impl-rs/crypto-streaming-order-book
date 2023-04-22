@@ -11,6 +11,9 @@ use tonic::transport::Server;
 #[cfg(test)]
 mod test_data;
 
+#[cfg(test)]
+mod test_server;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // server
