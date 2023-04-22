@@ -22,3 +22,11 @@ There is a client that you can use to test the gRPC server. You can run it with 
 `cargo run --bin client`
 
 This will start the client and connect to the gRPC server. It will then print the summary order book to the console.
+
+## Tests
+
+You can run the tests with the following command:
+
+`cargo test -- --test-threads 1`
+
+The reason for only running the tests on 1 thread is that we spin up a test WebSocket server to mock the exchanges responses and connect to it. If we run the tests on multiple threads, the WebSocket server will be started multiple times, and the tests will fail because the address is already in use.
