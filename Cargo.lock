@@ -160,6 +160,7 @@ dependencies = [
 name = "crypto-streaming-order-book"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "futures-util",
  "prost",
  "serde",
