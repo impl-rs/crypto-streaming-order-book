@@ -19,7 +19,7 @@ impl Exchange for Bitstamp {
     fn get_name() -> &'static str {
         "bitstamp"
     }
-    async fn get_order_book(pair: &str, sender: UnboundedSender<OrderBook>) -> () {
+    async fn get_order_book(pair: String, sender: UnboundedSender<OrderBook>) -> () {
         let (ws_stream, _) = connect_async(BITSTAMP_WEB_SOCKET_URL).await.unwrap();
         let (mut write, read) = ws_stream.split();
 
@@ -103,7 +103,7 @@ mod tests {
         let mut server = TestServer::new("8081").await;
         let (sender, mut receiver) = server.get_channels();
 
-        spawn(Bitstamp::get_order_book("ethbtc", sender));
+        spawn(Bitstamp::get_order_book("ethbtc".into(), sender));
 
         server.send_message(get_bitstamp_websocket_response());
 

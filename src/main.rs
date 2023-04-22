@@ -7,6 +7,7 @@ mod service;
 use crate::proto::OrderbookAggregatorServer;
 use crate::service::OrderBookService;
 use anyhow::Result;
+use clap::Parser;
 use std::error::Error;
 use tonic::transport::Server;
 #[cfg(test)]
@@ -15,7 +16,13 @@ mod test_data;
 #[cfg(test)]
 mod test_server;
 
-async fn start_server(pair: &'static str) -> Result<()> {
+#[derive(Parser, Debug)]
+struct Args {
+    #[arg(short, long)]
+    pair: String,
+}
+
+async fn start_server(pair: String) -> Result<()> {
     let addresse = "[::1]:10000".parse().unwrap();
 
     println!("OrderbookAggregatorServer listening on: {}", addresse);
@@ -34,9 +41,8 @@ async fn start_server(pair: &'static str) -> Result<()> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    // server
-    let pair = "ethbtc";
-    start_server(pair).await?;
+    let args = Args::parse();
+    start_server(args.pair).await?;
 
     Ok(())
 }
@@ -65,7 +71,7 @@ mod tests {
         let mut binance_server = TestServer::new("8080").await;
         let mut bitstamp_server = TestServer::new("8081").await;
 
-        spawn(start_server("ethbtc"));
+        spawn(start_server("ethbtc".into()));
         // wait for server to start (kinda hacky but works for now)
         sleep(Duration::from_millis(1000)).await;
 

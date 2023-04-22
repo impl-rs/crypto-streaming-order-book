@@ -19,7 +19,7 @@ impl Exchange for Binance {
     fn get_name() -> &'static str {
         "binance"
     }
-    async fn get_order_book(pair: &str, sender: UnboundedSender<OrderBook>) -> () {
+    async fn get_order_book(pair: String, sender: UnboundedSender<OrderBook>) -> () {
         let subscription = BinanceSubscription::new(pair, 10, 100);
         let (ws_stream, _) = connect_async(subscription.to_url()).await.unwrap();
         let (_, read) = ws_stream.split();
@@ -41,9 +41,9 @@ struct BinanceSubscription {
 }
 
 impl BinanceSubscription {
-    fn new(pair: &str, depth: i32, update_speed: i32) -> Self {
+    fn new(pair: String, depth: i32, update_speed: i32) -> Self {
         Self {
-            pair: pair.into(),
+            pair,
             depth,
             update_speed,
         }
@@ -67,7 +67,7 @@ mod tests {
         let mut server = TestServer::new("8080").await;
         let (sender, mut receiver) = server.get_channels();
 
-        spawn(Binance::get_order_book("ethbtc", sender));
+        spawn(Binance::get_order_book("ethbtc".into(), sender));
 
         server.send_message(get_binance_websocket_response());
 

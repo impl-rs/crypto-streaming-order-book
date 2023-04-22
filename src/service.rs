@@ -16,12 +16,12 @@ use tonic::{Request, Response, Status};
 
 #[derive(Debug)]
 pub struct OrderBookService {
-    pair: &'static str,
+    pair: String,
     exchanges: Arc<Mutex<HashMap<&'static str, OrderBook>>>,
 }
 
 impl OrderBookService {
-    pub fn new(pair: &'static str) -> Self {
+    pub fn new(pair: String) -> Self {
         Self {
             pair,
             exchanges: Arc::new(Mutex::new(HashMap::new())),
@@ -97,18 +97,18 @@ impl OrderbookAggregator for OrderBookService {
         &self,
         _request: Request<Empty>,
     ) -> Result<Response<Self::BookSummaryStream>, Status> {
+        let OrderBookService { pair, .. } = self;
         let exchanges: Arc<Mutex<HashMap<&str, OrderBook>>> = self.get_exchanges();
 
         let (order_book_tx, mut order_book_rx) = unbounded_channel::<OrderBook>();
         let (summary_tx, summary_rx) = unbounded_channel::<Result<Summary, Status>>();
 
-        spawn(Bitstamp::get_order_book(self.pair, order_book_tx.clone()));
-        spawn(Binance::get_order_book(self.pair, order_book_tx));
+        spawn(Bitstamp::get_order_book(pair.into(), order_book_tx.clone()));
+        spawn(Binance::get_order_book(pair.into(), order_book_tx));
         spawn(async move {
             while let Some(order_book) = order_book_rx.recv().await {
                 update_exchange(&exchanges, order_book).await;
 
-                // TODO merge order books
                 summary_tx.send(Ok(get_summary(&exchanges).await)).unwrap();
             }
         });
@@ -124,7 +124,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_summary() {
-        let service = OrderBookService::new("ethbtc");
+        let service = OrderBookService::new("ethbtc".into());
         let exchanges_mutex = service.get_exchanges();
         update_exchange(&exchanges_mutex, get_bitstamp_order_book_builder().build()).await;
         update_exchange(&exchanges_mutex, get_binance_order_book_builder().build()).await;
@@ -144,6 +144,7 @@ mod tests {
         assert_eq!(summary.asks[9].price, 0.068437);
 
         // test that bids with price 0.06842268 are sorted by amount
+        assert!(summary.bids[3].price == summary.bids[4].price);
         assert!(summary.bids[3].amount > summary.bids[4].amount);
     }
 }

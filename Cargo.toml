@@ -22,6 +22,7 @@ tonic = "0.9.1"
 prost = "0.11.9"
 tokio-stream = "0.1.12"
 anyhow = "1.0.70"
+clap = { version = "4.2.4", features = ["derive"] }
 
 [build-dependencies]
 tonic-build = "0.9.1"
