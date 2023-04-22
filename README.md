@@ -1,6 +1,6 @@
 # Crypto streaming order book
 
-This is a Rust project that implements a streaming order book for cryptocurrencies using a gRPC server. It connects to WebSocket streams from the supported exchanges. It then combines the order books from the exchanges and provides a combined order book. From that, it published the spread, the top 10 bids and asks for the gRPC stream.
+This is a Rust project that implements a streaming order book for cryptocurrencies using a gRPC server. It connects to WebSocket streams from the supported exchanges. It then combines the order books from the exchanges and provides a combined order book. From that, it published the spread, the top 10 bids and asks through the gRPC server on each change in either exchange order book.
 
 ## Supported exchanges
 
