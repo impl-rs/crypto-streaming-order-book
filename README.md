@@ -30,3 +30,8 @@ You can run the tests with the following command:
 `cargo test -- --test-threads 1`
 
 The reason for only running the tests on 1 thread is that we spin up a test WebSocket server to mock the exchanges responses and connect to it. If we run the tests on multiple threads, the WebSocket server will be started multiple times, and the tests will fail because the address is already in use.
+
+## Improvements
+
+- Validate that the pair exists on both exchanges
+- Refactor into cargo workspace to share code between the server and client

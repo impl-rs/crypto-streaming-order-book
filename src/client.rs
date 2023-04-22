@@ -1,8 +1,9 @@
 mod proto;
 use crate::proto::{Empty, OrderbookAggregatorClient};
+use anyhow::Result;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<()> {
     let mut client = OrderbookAggregatorClient::connect("http://[::1]:10000").await?;
 
     let mut stream = client.book_summary(Empty {}).await?.into_inner();
