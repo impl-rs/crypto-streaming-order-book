@@ -13,8 +13,6 @@ use tokio::{
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{Request, Response, Status};
-
-#[derive(Debug)]
 pub struct OrderBookService {
     pair: String,
     exchanges: Arc<Mutex<HashMap<&'static str, OrderBook>>>,

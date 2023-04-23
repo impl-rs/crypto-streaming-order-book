@@ -6,8 +6,8 @@ use serde::{
     Deserialize, Deserializer,
 };
 use std::{fmt, marker::PhantomData};
-#[derive(Deserialize, Debug)]
-pub struct OrderBookBuilder<X: Exchange + std::fmt::Debug> {
+#[derive(Deserialize)]
+pub struct OrderBookBuilder<X: Exchange> {
     pub bids: Vec<LevelBuilder<X>>,
     pub asks: Vec<LevelBuilder<X>>,
 }
@@ -28,7 +28,7 @@ impl OrderBook {
     }
 }
 
-impl<X: Exchange + std::fmt::Debug> OrderBookBuilder<X> {
+impl<X: Exchange> OrderBookBuilder<X> {
     pub fn build(self) -> OrderBook {
         let OrderBookBuilder { mut bids, mut asks } = self;
 
@@ -45,7 +45,7 @@ impl<X: Exchange + std::fmt::Debug> OrderBookBuilder<X> {
 
 // https://play.rust-lang.org/?version=stable&mode=debug&edition=2018&gist=ee7f582b5873013723596790a7993925
 // https://serde.rs/string-or-struct.html
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 pub struct LevelBuilder<X: Exchange> {
     price: f64,
     amount: f64,

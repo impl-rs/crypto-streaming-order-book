@@ -11,7 +11,7 @@ const BITSTAMP_WEB_SOCKET_URL: &str = "wss://ws.bitstamp.net/";
 #[cfg(test)]
 const BITSTAMP_WEB_SOCKET_URL: &str = "ws://localhost:8081/ws/";
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct Bitstamp;
 
 #[tonic::async_trait]
@@ -69,7 +69,7 @@ impl BitstampSubscription {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 struct BitstampResponse {
     data: OrderBookBuilder<Bitstamp>,
 }
@@ -80,14 +80,14 @@ impl From<BitstampResponse> for OrderBookBuilder<Bitstamp> {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 enum BitstampWebSocketEvent {
     #[serde(rename = "bts:subscription_succeeded")]
     BtsSubscriptionSucceded,
     #[serde(rename = "data")]
     Data,
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 struct BitstampResponseEvent {
     event: BitstampWebSocketEvent,
 }
@@ -98,6 +98,7 @@ mod tests {
     use crate::test_data::get_bitstamp_websocket_response;
     use crate::test_server::TestServer;
     use tokio::spawn;
+
     #[tokio::test]
     async fn test_bitstamp_websocket() {
         let mut server = TestServer::new("8081").await;

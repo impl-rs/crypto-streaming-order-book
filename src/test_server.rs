@@ -15,7 +15,6 @@ async fn handle_connection(
     println!("New WebSocket connection: {}", peer);
     let (mut ws_sender, _ws_receiver) = ws_stream.split();
 
-    // Echo incoming WebSocket messages and send a message periodically every second.
     while let Some(msg) = websocket_rx.recv().await {
         ws_sender.send(msg.into()).await?;
     }

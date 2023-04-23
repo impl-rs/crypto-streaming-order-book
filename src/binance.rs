@@ -11,7 +11,7 @@ const BINANCE_WEB_SOCKET_URL: &str = "wss://stream.binance.com:9443/ws/";
 #[cfg(test)]
 const BINANCE_WEB_SOCKET_URL: &str = "ws://localhost:8080/ws/";
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct Binance;
 
 #[tonic::async_trait]
@@ -62,6 +62,7 @@ mod tests {
     use crate::test_data::get_binance_websocket_response;
     use crate::test_server::TestServer;
     use tokio::spawn;
+
     #[tokio::test]
     async fn test_binance_websocket() {
         let mut server = TestServer::new("8080").await;

@@ -16,7 +16,7 @@ mod test_data;
 #[cfg(test)]
 mod test_server;
 
-#[derive(Parser, Debug)]
+#[derive(Parser)]
 struct Args {
     #[arg(short, long)]
     pair: String,
