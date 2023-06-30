@@ -2,7 +2,7 @@ use crate::exchange::Exchange;
 use crate::order_book::{OrderBook, OrderBookBuilder};
 use futures_util::StreamExt;
 use serde::Deserialize;
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::Sender;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 #[cfg(not(test))]
@@ -19,7 +19,7 @@ impl Exchange for Binance {
     fn get_name() -> &'static str {
         "binance"
     }
-    async fn get_order_book(pair: String, sender: UnboundedSender<OrderBook>) -> () {
+    async fn get_order_book(pair: String, sender: Sender<OrderBook>) -> () {
         loop {
             let subscription = BinanceSubscription::new(&pair, 10, 100);
             let (ws_stream, _) = connect_async(subscription.to_url()).await.unwrap();
@@ -30,7 +30,7 @@ impl Exchange for Binance {
                     let response: Result<OrderBookBuilder<Binance>, _> =
                         serde_json::from_str(&text);
                     if let Ok(order_book) = response {
-                        sender.send(order_book.build()).unwrap();
+                        sender.send(order_book.build()).await.unwrap();
                     }
                 }
             })
@@ -75,7 +75,7 @@ mod tests {
 
         spawn(Binance::get_order_book("ethbtc".into(), sender));
 
-        server.send_message(get_binance_websocket_response());
+        server.send_message(get_binance_websocket_response()).await;
 
         if let Some(order_book) = receiver.recv().await {
             assert_eq!(order_book.get_exchange_name(), "binance");

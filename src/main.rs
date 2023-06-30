@@ -78,7 +78,9 @@ mod tests {
         let mut stream = start_client().await?;
 
         // First we send a message from binance
-        binance_server.send_message(get_binance_websocket_response());
+        binance_server
+            .send_message(get_binance_websocket_response())
+            .await;
 
         // Then we wait for a summary from the stream and assert the data
         if let Some(summary) = stream.message().await? {
@@ -96,7 +98,9 @@ mod tests {
         }
 
         // Then we send a message from bitstamp
-        bitstamp_server.send_message(get_bitstamp_websocket_response());
+        bitstamp_server
+            .send_message(get_bitstamp_websocket_response())
+            .await;
 
         // Then we wait for a summary from the stream and assert the data
         if let Some(summary) = stream.message().await? {

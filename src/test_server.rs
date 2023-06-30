@@ -3,13 +3,13 @@ use futures_util::{SinkExt, StreamExt};
 use std::net::SocketAddr;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::spawn;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio_tungstenite::{accept_async, tungstenite::Result};
 
 async fn handle_connection(
     peer: SocketAddr,
     stream: TcpStream,
-    websocket_rx: &mut UnboundedReceiver<String>,
+    websocket_rx: &mut Receiver<String>,
 ) -> Result<()> {
     let ws_stream = accept_async(stream).await.expect("Failed to accept");
     println!("New WebSocket connection: {}", peer);
@@ -23,14 +23,14 @@ async fn handle_connection(
 }
 
 pub struct TestServer {
-    pub websocket_tx: UnboundedSender<String>,
+    pub websocket_tx: Sender<String>,
 }
 
 impl TestServer {
     pub async fn new(port: &str) -> Self {
         let addr = format!("127.0.0.1:{}", port);
         let listener = TcpListener::bind(&addr).await.expect("Can't listen");
-        let (websocket_tx, mut websocket_rx) = unbounded_channel::<String>();
+        let (websocket_tx, mut websocket_rx) = channel::<String>(100);
 
         println!("Listening on: {}", addr);
 
@@ -51,12 +51,12 @@ impl TestServer {
         Self { websocket_tx }
     }
 
-    pub fn get_channels(&self) -> (UnboundedSender<OrderBook>, UnboundedReceiver<OrderBook>) {
-        let (order_book_tx, order_book_rx) = unbounded_channel::<OrderBook>();
+    pub fn get_channels(&self) -> (Sender<OrderBook>, Receiver<OrderBook>) {
+        let (order_book_tx, order_book_rx) = channel::<OrderBook>(100);
         (order_book_tx, order_book_rx)
     }
 
-    pub fn send_message(&mut self, message: &str) {
-        self.websocket_tx.send(message.into()).unwrap();
+    pub async fn send_message(&mut self, message: &str) {
+        self.websocket_tx.send(message.into()).await.unwrap();
     }
 }

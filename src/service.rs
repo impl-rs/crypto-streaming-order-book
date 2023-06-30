@@ -9,10 +9,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::{
     spawn,
-    sync::{mpsc::unbounded_channel, Mutex},
+    sync::{mpsc::channel, Mutex},
 };
-use tokio_stream::wrappers::UnboundedReceiverStream;
+use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
+
+const CHANNEL_BUFFER_SIZE: usize = 100;
 pub struct OrderBookService {
     pair: String,
     exchanges: Arc<Mutex<HashMap<&'static str, OrderBook>>>,
@@ -94,7 +96,7 @@ async fn get_summary(exchanges: &Arc<Mutex<HashMap<&'static str, OrderBook>>>) -
 
 #[tonic::async_trait]
 impl OrderbookAggregator for OrderBookService {
-    type BookSummaryStream = UnboundedReceiverStream<Result<Summary, Status>>;
+    type BookSummaryStream = ReceiverStream<Result<Summary, Status>>;
 
     async fn book_summary(
         &self,
@@ -103,8 +105,8 @@ impl OrderbookAggregator for OrderBookService {
         let OrderBookService { pair, .. } = self;
         let exchanges: Arc<Mutex<HashMap<&str, OrderBook>>> = self.get_exchanges();
 
-        let (order_book_tx, mut order_book_rx) = unbounded_channel::<OrderBook>();
-        let (summary_tx, summary_rx) = unbounded_channel::<Result<Summary, Status>>();
+        let (order_book_tx, mut order_book_rx) = channel::<OrderBook>(CHANNEL_BUFFER_SIZE);
+        let (summary_tx, summary_rx) = channel::<Result<Summary, Status>>(CHANNEL_BUFFER_SIZE);
 
         spawn(Bitstamp::get_order_book(pair.into(), order_book_tx.clone()));
         spawn(Binance::get_order_book(pair.into(), order_book_tx));
@@ -112,11 +114,14 @@ impl OrderbookAggregator for OrderBookService {
             while let Some(order_book) = order_book_rx.recv().await {
                 update_exchange(&exchanges, order_book).await;
 
-                summary_tx.send(Ok(get_summary(&exchanges).await)).unwrap();
+                summary_tx
+                    .send(Ok(get_summary(&exchanges).await))
+                    .await
+                    .unwrap();
             }
         });
 
-        Ok(Response::new(UnboundedReceiverStream::new(summary_rx)))
+        Ok(Response::new(ReceiverStream::new(summary_rx)))
     }
 }
 

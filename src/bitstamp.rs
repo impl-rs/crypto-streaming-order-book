@@ -2,7 +2,7 @@ use crate::exchange::Exchange;
 use crate::order_book::{OrderBook, OrderBookBuilder};
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::Sender;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 #[cfg(not(test))]
@@ -19,7 +19,7 @@ impl Exchange for Bitstamp {
     fn get_name() -> &'static str {
         "bitstamp"
     }
-    async fn get_order_book(pair: String, sender: UnboundedSender<OrderBook>) -> () {
+    async fn get_order_book(pair: String, sender: Sender<OrderBook>) -> () {
         loop {
             let (ws_stream, _) = connect_async(BITSTAMP_WEB_SOCKET_URL).await.unwrap();
             let (mut write, read) = ws_stream.split();
@@ -41,7 +41,7 @@ impl Exchange for Bitstamp {
                             serde_json::from_str(&text);
                         if let Ok(bitstamp_response) = bitstamp_response {
                             let order_book: OrderBookBuilder<Bitstamp> = bitstamp_response.into();
-                            sender.send(order_book.build()).unwrap();
+                            sender.send(order_book.build()).await.unwrap();
                         }
                     }
                 }
@@ -112,7 +112,7 @@ mod tests {
 
         spawn(Bitstamp::get_order_book("ethbtc".into(), sender));
 
-        server.send_message(get_bitstamp_websocket_response());
+        server.send_message(get_bitstamp_websocket_response()).await;
 
         if let Some(order_book) = receiver.recv().await {
             assert_eq!(order_book.get_exchange_name(), "bitstamp");
