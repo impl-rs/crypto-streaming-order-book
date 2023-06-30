@@ -20,28 +20,34 @@ impl Exchange for Bitstamp {
         "bitstamp"
     }
     async fn get_order_book(pair: String, sender: UnboundedSender<OrderBook>) -> () {
-        let (ws_stream, _) = connect_async(BITSTAMP_WEB_SOCKET_URL).await.unwrap();
-        let (mut write, read) = ws_stream.split();
+        loop {
+            let (ws_stream, _) = connect_async(BITSTAMP_WEB_SOCKET_URL).await.unwrap();
+            let (mut write, read) = ws_stream.split();
 
-        write
-            .send(Message::Text(
-                BitstampSubscription::new("bts:subscribe", format!("order_book_{}", pair))
-                    .to_json(),
-            ))
-            .await
-            .unwrap();
+            write
+                .send(Message::Text(
+                    BitstampSubscription::new("bts:subscribe", format!("order_book_{}", pair))
+                        .to_json(),
+                ))
+                .await
+                .unwrap();
 
-        read.for_each(|message| async {
-            if let Ok(Message::Text(text)) = message {
-                let response_event: BitstampResponseEvent = serde_json::from_str(&text).unwrap();
-                if let BitstampWebSocketEvent::Data = response_event.event {
-                    let bitstamp_response: BitstampResponse = serde_json::from_str(&text).unwrap();
-                    let order_book: OrderBookBuilder<Bitstamp> = bitstamp_response.into();
-                    sender.send(order_book.build()).unwrap();
+            read.for_each(|message| async {
+                if let Ok(Message::Text(text)) = message {
+                    let response_event: BitstampResponseEvent =
+                        serde_json::from_str(&text).unwrap();
+                    if let BitstampWebSocketEvent::Data = response_event.event {
+                        let bitstamp_response: Result<BitstampResponse, _> =
+                            serde_json::from_str(&text);
+                        if let Ok(bitstamp_response) = bitstamp_response {
+                            let order_book: OrderBookBuilder<Bitstamp> = bitstamp_response.into();
+                            sender.send(order_book.build()).unwrap();
+                        }
+                    }
                 }
-            }
-        })
-        .await;
+            })
+            .await;
+        }
     }
 }
 

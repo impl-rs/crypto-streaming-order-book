@@ -20,28 +20,33 @@ impl Exchange for Binance {
         "binance"
     }
     async fn get_order_book(pair: String, sender: UnboundedSender<OrderBook>) -> () {
-        let subscription = BinanceSubscription::new(pair, 10, 100);
-        let (ws_stream, _) = connect_async(subscription.to_url()).await.unwrap();
-        let (_, read) = ws_stream.split();
+        loop {
+            let subscription = BinanceSubscription::new(&pair, 10, 100);
+            let (ws_stream, _) = connect_async(subscription.to_url()).await.unwrap();
+            let (_, read) = ws_stream.split();
 
-        read.for_each(|message| async {
-            if let Ok(Message::Text(text)) = message {
-                let response: OrderBookBuilder<Binance> = serde_json::from_str(&text).unwrap();
-                sender.send(response.build()).unwrap();
-            }
-        })
-        .await;
+            read.for_each(|message| async {
+                if let Ok(Message::Text(text)) = message {
+                    let response: Result<OrderBookBuilder<Binance>, _> =
+                        serde_json::from_str(&text);
+                    if let Ok(order_book) = response {
+                        sender.send(order_book.build()).unwrap();
+                    }
+                }
+            })
+            .await;
+        }
     }
 }
 
-struct BinanceSubscription {
-    pair: String,
+struct BinanceSubscription<'a> {
+    pair: &'a String,
     depth: i32,
     update_speed: i32,
 }
 
-impl BinanceSubscription {
-    fn new(pair: String, depth: i32, update_speed: i32) -> Self {
+impl<'a> BinanceSubscription<'a> {
+    fn new(pair: &'a String, depth: i32, update_speed: i32) -> Self {
         Self {
             pair,
             depth,

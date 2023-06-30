@@ -80,8 +80,13 @@ async fn merge_levels(
 async fn get_summary(exchanges: &Arc<Mutex<HashMap<&'static str, OrderBook>>>) -> Summary {
     let (merged_bids, merged_asks) = merge_levels(exchanges).await;
 
+    let spread = match (merged_asks.first(), merged_bids.first()) {
+        (Some(first_ask), Some(first_bid)) => first_ask.price - first_bid.price,
+        _ => f64::NAN,
+    };
+
     Summary {
-        spread: merged_asks[0].price - merged_bids[0].price,
+        spread,
         bids: merged_bids,
         asks: merged_asks,
     }
