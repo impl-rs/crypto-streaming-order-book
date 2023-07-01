@@ -2,22 +2,37 @@ use crate::binance::Binance;
 use crate::bitstamp::Bitstamp;
 use crate::exchange::Exchange;
 use crate::order_book::OrderBook;
-
 use crate::proto::{Empty, Level, OrderbookAggregator, Summary};
 use core::cmp::Ordering;
+use futures_util::ready;
+use futures_util::task::Context;
+use futures_util::task::Poll;
+use futures_util::Stream;
 use std::collections::HashMap;
+use std::marker::PhantomData;
+use std::pin::Pin;
 use std::sync::Arc;
+use tokio::sync::broadcast::error::RecvError;
 use tokio::{
     spawn,
-    sync::{mpsc::channel, Mutex},
+    sync::{broadcast, mpsc, Mutex},
 };
-use tokio_stream::wrappers::ReceiverStream;
-use tonic::{Request, Response, Status};
+use tokio_util::sync::ReusableBoxFuture;
 
+use tonic::{Request, Response, Status};
 const CHANNEL_BUFFER_SIZE: usize = 100;
-pub struct OrderBookService {
+
+#[derive(Clone)]
+pub struct Connected;
+
+#[derive(Clone)]
+pub struct NotConnected;
+
+pub struct OrderBookService<ServiceStatus = NotConnected> {
     pair: String,
     exchanges: Arc<Mutex<HashMap<&'static str, OrderBook>>>,
+    status: PhantomData<ServiceStatus>,
+    summary_sender: Option<broadcast::Sender<Summary>>,
 }
 
 impl OrderBookService {
@@ -25,6 +40,43 @@ impl OrderBookService {
         Self {
             pair,
             exchanges: Arc::new(Mutex::new(HashMap::new())),
+            status: PhantomData,
+            summary_sender: None,
+        }
+    }
+    pub fn connect_exchanges(self) -> OrderBookService<Connected> {
+        let exchanges: Arc<Mutex<HashMap<&str, OrderBook>>> = self.get_exchanges();
+
+        let (order_book_tx, mut order_book_rx) = mpsc::channel::<OrderBook>(CHANNEL_BUFFER_SIZE);
+        let (summary_tx, _summary_rx) = broadcast::channel::<Summary>(CHANNEL_BUFFER_SIZE);
+
+        spawn(Bitstamp::get_order_book(
+            self.pair.clone(),
+            order_book_tx.clone(),
+        ));
+        spawn(Binance::get_order_book(self.pair.clone(), order_book_tx));
+
+        let exchanges_clone = exchanges.clone();
+        let summary_tx_clone = summary_tx.clone();
+
+        spawn(async move {
+            while let Some(order_book) = order_book_rx.recv().await {
+                update_exchange(&exchanges_clone, order_book).await;
+
+                if summary_tx_clone
+                    .send(get_summary(&exchanges_clone).await)
+                    .is_ok()
+                {
+                    println!("Summary sent")
+                }
+            }
+        });
+
+        OrderBookService {
+            pair: self.pair,
+            exchanges,
+            status: PhantomData,
+            summary_sender: Some(summary_tx),
         }
     }
     fn get_exchanges(&self) -> Arc<Mutex<HashMap<&'static str, OrderBook>>> {
@@ -94,34 +146,53 @@ async fn get_summary(exchanges: &Arc<Mutex<HashMap<&'static str, OrderBook>>>) -
     }
 }
 
+pub struct OrderBookSummaryStream {
+    inner: ReusableBoxFuture<'static, (Result<Summary, RecvError>, broadcast::Receiver<Summary>)>,
+}
+
+async fn make_future(
+    mut rx: broadcast::Receiver<Summary>,
+) -> (Result<Summary, RecvError>, broadcast::Receiver<Summary>) {
+    let result = rx.recv().await;
+    (result, rx)
+}
+
+impl OrderBookSummaryStream {
+    pub fn new(summary_rx: broadcast::Receiver<Summary>) -> Self {
+        Self {
+            inner: ReusableBoxFuture::new(make_future(summary_rx)),
+        }
+    }
+}
+
+impl Stream for OrderBookSummaryStream {
+    type Item = Result<Summary, Status>;
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let (result, rx) = ready!(self.inner.poll(cx));
+        self.inner.set(make_future(rx));
+        match result {
+            Ok(item) => Poll::Ready(Some(Ok(item))),
+            Err(RecvError::Closed) => Poll::Ready(None),
+            Err(RecvError::Lagged(_)) => Poll::Ready(Some(Err(Status::internal("Message lagged")))),
+        }
+    }
+}
+
 #[tonic::async_trait]
-impl OrderbookAggregator for OrderBookService {
-    type BookSummaryStream = ReceiverStream<Result<Summary, Status>>;
+impl OrderbookAggregator for OrderBookService<Connected> {
+    type BookSummaryStream = OrderBookSummaryStream;
 
     async fn book_summary(
         &self,
         _request: Request<Empty>,
     ) -> Result<Response<Self::BookSummaryStream>, Status> {
-        let OrderBookService { pair, .. } = self;
-        let exchanges: Arc<Mutex<HashMap<&str, OrderBook>>> = self.get_exchanges();
-
-        let (order_book_tx, mut order_book_rx) = channel::<OrderBook>(CHANNEL_BUFFER_SIZE);
-        let (summary_tx, summary_rx) = channel::<Result<Summary, Status>>(CHANNEL_BUFFER_SIZE);
-
-        spawn(Bitstamp::get_order_book(pair.into(), order_book_tx.clone()));
-        spawn(Binance::get_order_book(pair.into(), order_book_tx));
-        spawn(async move {
-            while let Some(order_book) = order_book_rx.recv().await {
-                update_exchange(&exchanges, order_book).await;
-
-                summary_tx
-                    .send(Ok(get_summary(&exchanges).await))
-                    .await
-                    .unwrap();
-            }
-        });
-
-        Ok(Response::new(ReceiverStream::new(summary_rx)))
+        let OrderBookService { summary_sender, .. } = self;
+        if let Some(sender) = summary_sender {
+            return Ok(Response::new(OrderBookSummaryStream::new(
+                sender.subscribe(),
+            )));
+        }
+        Err(Status::internal("Summary stream not initialized"))
     }
 }
 

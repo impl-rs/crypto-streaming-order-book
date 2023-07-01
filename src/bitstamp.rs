@@ -41,7 +41,9 @@ impl Exchange for Bitstamp {
                             serde_json::from_str(&text);
                         if let Ok(bitstamp_response) = bitstamp_response {
                             let order_book: OrderBookBuilder<Bitstamp> = bitstamp_response.into();
-                            sender.send(order_book.build()).await.unwrap();
+                            if sender.send(order_book.build()).await.is_ok() {
+                                println!("Bitstamp message sent")
+                            }
                         }
                     }
                 }

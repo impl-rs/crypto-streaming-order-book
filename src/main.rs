@@ -27,7 +27,7 @@ async fn start_server(pair: String) -> Result<()> {
 
     println!("OrderbookAggregatorServer listening on: {}", addresse);
 
-    let order_book_service = OrderBookService::new(pair);
+    let order_book_service = OrderBookService::new(pair).connect_exchanges();
 
     let order_book_server = OrderbookAggregatorServer::new(order_book_service);
 

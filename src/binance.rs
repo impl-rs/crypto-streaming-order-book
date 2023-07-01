@@ -30,7 +30,9 @@ impl Exchange for Binance {
                     let response: Result<OrderBookBuilder<Binance>, _> =
                         serde_json::from_str(&text);
                     if let Ok(order_book) = response {
-                        sender.send(order_book.build()).await.unwrap();
+                        if sender.send(order_book.build()).await.is_ok() {
+                            println!("Binance message sent")
+                        }
                     }
                 }
             })
