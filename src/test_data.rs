@@ -1,6 +1,8 @@
-use crate::binance::Binance;
-use crate::bitstamp::Bitstamp;
-use crate::order_book::{LevelBuilder, OrderBookBuilder};
+use crate::{
+    binance::Binance,
+    bitstamp::Bitstamp,
+    order_book::{LevelBuilder, OrderBookBuilder},
+};
 
 pub fn get_binance_order_book_builder() -> OrderBookBuilder<Binance> {
     OrderBookBuilder {

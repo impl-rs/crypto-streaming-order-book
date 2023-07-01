@@ -1,5 +1,7 @@
-use crate::exchange::Exchange;
-use crate::order_book::{OrderBook, OrderBookBuilder};
+use crate::{
+    exchange::Exchange,
+    order_book::{OrderBook, OrderBookBuilder},
+};
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::Sender;
@@ -103,8 +105,7 @@ struct BitstampResponseEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_data::get_bitstamp_websocket_response;
-    use crate::test_server::TestServer;
+    use crate::{test_data::get_bitstamp_websocket_response, test_server::TestServer};
     use tokio::spawn;
 
     #[tokio::test]

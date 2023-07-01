@@ -1,5 +1,7 @@
-use crate::exchange::Exchange;
-use crate::order_book::{OrderBook, OrderBookBuilder};
+use crate::{
+    exchange::Exchange,
+    order_book::{OrderBook, OrderBookBuilder},
+};
 use futures_util::StreamExt;
 use serde::Deserialize;
 use tokio::sync::mpsc::Sender;
@@ -66,8 +68,7 @@ impl<'a> BinanceSubscription<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_data::get_binance_websocket_response;
-    use crate::test_server::TestServer;
+    use crate::{test_data::get_binance_websocket_response, test_server::TestServer};
     use tokio::spawn;
 
     #[tokio::test]

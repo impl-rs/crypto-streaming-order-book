@@ -4,8 +4,7 @@ mod exchange;
 mod order_book;
 mod proto;
 mod service;
-use crate::proto::OrderbookAggregatorServer;
-use crate::service::OrderBookService;
+use crate::{proto::OrderbookAggregatorServer, service::OrderBookService};
 use anyhow::Result;
 use clap::Parser;
 use std::error::Error;
@@ -50,12 +49,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::proto::{Empty, OrderbookAggregatorClient, Summary};
-    use crate::test_data::{get_binance_websocket_response, get_bitstamp_websocket_response};
-    use crate::test_server::TestServer;
+    use crate::{
+        proto::{Empty, OrderbookAggregatorClient, Summary},
+        test_data::{get_binance_websocket_response, get_bitstamp_websocket_response},
+        test_server::TestServer,
+    };
     use anyhow::Result;
-    use tokio::spawn;
-    use tokio::time::{sleep, Duration};
+    use tokio::{
+        spawn,
+        time::{sleep, Duration},
+    };
     use tonic::Streaming;
 
     async fn start_client() -> Result<Streaming<Summary>> {

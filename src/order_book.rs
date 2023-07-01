@@ -1,8 +1,6 @@
-use crate::exchange::Exchange;
-use crate::proto::Level;
-use serde::de::{self, Visitor};
+use crate::{exchange::Exchange, proto::Level};
 use serde::{
-    de::{Error, SeqAccess},
+    de::{self, Error, SeqAccess, Visitor},
     Deserialize, Deserializer,
 };
 use std::{fmt, marker::PhantomData};
@@ -110,9 +108,11 @@ impl<'de, X: Exchange> Deserialize<'de> for LevelBuilder<X> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::binance::Binance;
-    use crate::bitstamp::Bitstamp;
-    use crate::test_data::{get_binance_order_book_builder, get_bitstamp_order_book_builder};
+    use crate::{
+        binance::Binance,
+        bitstamp::Bitstamp,
+        test_data::{get_binance_order_book_builder, get_bitstamp_order_book_builder},
+    };
 
     #[test]
     fn test_deserialize_level_builder() {

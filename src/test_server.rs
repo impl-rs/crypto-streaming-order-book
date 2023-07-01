@@ -1,9 +1,11 @@
 use crate::order_book::OrderBook;
 use futures_util::{SinkExt, StreamExt};
 use std::net::SocketAddr;
-use tokio::net::{TcpListener, TcpStream};
-use tokio::spawn;
-use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::{
+    net::{TcpListener, TcpStream},
+    spawn,
+    sync::mpsc::{channel, Receiver, Sender},
+};
 use tokio_tungstenite::{accept_async, tungstenite::Result};
 
 async fn handle_connection(

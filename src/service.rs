@@ -1,21 +1,20 @@
-use crate::binance::Binance;
-use crate::bitstamp::Bitstamp;
-use crate::exchange::Exchange;
-use crate::order_book::OrderBook;
-use crate::proto::{Empty, Level, OrderbookAggregator, Summary};
+use crate::{
+    binance::Binance,
+    bitstamp::Bitstamp,
+    exchange::Exchange,
+    order_book::OrderBook,
+    proto::{Empty, Level, OrderbookAggregator, Summary},
+};
 use core::cmp::Ordering;
-use futures_util::ready;
-use futures_util::task::Context;
-use futures_util::task::Poll;
-use futures_util::Stream;
-use std::collections::HashMap;
-use std::marker::PhantomData;
-use std::pin::Pin;
-use std::sync::Arc;
-use tokio::sync::broadcast::error::RecvError;
+use futures_util::{
+    ready,
+    task::{Context, Poll},
+    Stream,
+};
+use std::{collections::HashMap, marker::PhantomData, pin::Pin, sync::Arc};
 use tokio::{
     spawn,
-    sync::{broadcast, mpsc, Mutex},
+    sync::{broadcast, broadcast::error::RecvError, mpsc, Mutex},
 };
 use tokio_util::sync::ReusableBoxFuture;
 
